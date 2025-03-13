@@ -11,7 +11,7 @@ export function ModeToggle() {
       size="icon"
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")
       }
-    >
+      style={{cursor: "pointer"}}>
       {theme === "dark" ? (
         <Moon className="h-5 w-5 text-black-500" />
       ) : (

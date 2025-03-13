@@ -52,11 +52,11 @@ const Navbar = () => {
       )}
 
       <div className="ml-auto flex gap-4">
-        <ModeToggle />
+        <ModeToggle  />
        {Username ? (
                     <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost"> <User />{Username}</Button>
+                      <Button variant="ghost" style={{cursor: "pointer"}}> <User />{Username}</Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-56">
                       <DropdownMenuGroup>

@@ -7,7 +7,7 @@ import LoginPage from "./pages/LoginPage.tsx"
 import SignPage from "./pages/SignPage.tsx"
 import ProtectedRoutes from "./components/ProtectedRoute.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
-import { NewFile } from "./components/NewFile.tsx";
+import Repository from "./pages/Repository.tsx";
 function App() {
     return (
         <Router>
@@ -17,8 +17,8 @@ function App() {
                 <Routes>
                     <Route element={<ProtectedRoutes/>}>
                           <Route path="/dashboard" element={<Dashboard/>} />
+                          <Route path="/repository/:id" element={<Repository />} />
                     </Route>
-                    <Route path="/newfile" element={<NewFile/>}/>
                     <Route path="/" element={<Home />} />
                     <Route path="/Login" element={<LoginPage />} />
                     <Route path="/Sign" element={<SignPage />} />

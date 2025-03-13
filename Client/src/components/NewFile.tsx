@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { X } from "lucide-react";
+import { v4 as uuidv4 } from "uuid"; // Import UUID generator
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,19 +15,18 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-export function NewFile() {
+export function NewFile({ setZipFiles }: { setZipFiles: React.Dispatch<React.SetStateAction<{ id: string; name: string; size: number; file: File }[]>> }) {
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null); // Error handling
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    // Validation: Ensure required fields are filled
     if (!name.trim()) {
       setError("Repository name is required.");
       return;
@@ -38,26 +38,32 @@ export function NewFile() {
 
     setLoading(true);
 
-    // Simulate async operation
+    // Add file to the zipFiles array with a unique id
+    setZipFiles((prev) => [
+      ...prev,
+      { id: uuidv4(), name: file.name, size: file.size, file },
+    ]);
+
     setTimeout(() => {
-      console.log("Submitted", { name, desc, file });
       setLoading(false);
-      setOpen(false); // Close the dialog only if everything is valid
+      setOpen(false);
     }, 1000);
   };
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button onClick={() => setOpen(true)}>Create Repository</Button>
+        <Button onClick={() => setOpen(true)} style={{ cursor: "pointer" }}>
+          Create Repository
+        </Button>
       </AlertDialogTrigger>
       <AlertDialogContent className="relative">
-        {/* Close (X) button */}
         <AlertDialogCancel
           onClick={() => setOpen(false)}
           className="absolute top-3 right-3 p-1 rounded-full hover:bg-gray-200 transition"
+          style={{ cursor: "pointer" }}
         >
-          <X className="h-5 w-5" />
+          <X className="h-5 w-5" style={{ cursor: "pointer" }} />
         </AlertDialogCancel>
 
         <AlertDialogHeader>
@@ -93,12 +99,11 @@ export function NewFile() {
             />
           </div>
 
-          {/* Display validation error */}
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
           <AlertDialogFooter>
             <AlertDialogAction asChild>
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading} style={{ cursor: "pointer" }}>
                 {loading ? "Creating..." : "Create repository"}
               </Button>
             </AlertDialogAction>
