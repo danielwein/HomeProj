@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { X } from "lucide-react";
-import { v4 as uuidv4 } from "uuid"; // Import UUID generator
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +14,15 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-export function NewFile({ setZipFiles }: { setZipFiles: React.Dispatch<React.SetStateAction<{ id: string; name: string; size: number; file: File }[]>> }) {
+interface Repository {
+  _id: string;
+  Repname: string;
+  Desc?: string;
+  CreatedAT: string;
+  LastChanged:string;
+}
+
+export function NewFile({ setZipFiles }: { setZipFiles: React.Dispatch<React.SetStateAction<Repository[]>> }) {
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -23,7 +30,29 @@ export function NewFile({ setZipFiles }: { setZipFiles: React.Dispatch<React.Set
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const fetchRepositories = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const response = await fetch("http://localhost:3000/auth/reps", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+      if (data.repositories) {
+        setZipFiles(data.repositories);
+      }
+    } catch (error) {
+      console.error("Error fetching repositories:", error);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -38,16 +67,43 @@ export function NewFile({ setZipFiles }: { setZipFiles: React.Dispatch<React.Set
 
     setLoading(true);
 
-    // Add file to the zipFiles array with a unique id
-    setZipFiles((prev) => [
-      ...prev,
-      { id: uuidv4(), name: file.name, size: file.size, file },
-    ]);
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("Authentication token is missing.");
+      setLoading(false);
+      return;
+    }
 
-    setTimeout(() => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("name", name);
+    formData.append("desc", desc);
+
+    try {
+      const response = await fetch("http://localhost:3000/auth/upload", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to upload the file.");
+      }
+
+      // Refresh repositories after upload
+      await fetchRepositories();
+
       setLoading(false);
       setOpen(false);
-    }, 1000);
+      setName("");
+      setDesc("");
+      setFile(null);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Something went wrong.");
+      setLoading(false);
+    }
   };
 
   return (
@@ -63,7 +119,7 @@ export function NewFile({ setZipFiles }: { setZipFiles: React.Dispatch<React.Set
           className="absolute top-3 right-3 p-1 rounded-full hover:bg-gray-200 transition"
           style={{ cursor: "pointer" }}
         >
-          <X className="h-5 w-5" style={{ cursor: "pointer" }} />
+          <X className="h-5 w-5" />
         </AlertDialogCancel>
 
         <AlertDialogHeader>

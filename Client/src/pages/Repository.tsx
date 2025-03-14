@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import JSZip from 'jszip';
+import { useParams } from 'react-router-dom'; // Import useParams for getting URL parameters
 import { Button } from "@/components/ui/button";
 import { Folder, ChevronDown, ChevronRight, FileText } from 'lucide-react';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbEllipsis, BreadcrumbList } from "@/components/ui/breadcrumb";
@@ -8,7 +9,7 @@ import {
   CardContent,
   CardHeader,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Assuming ShadCN has these components
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { JSX } from 'react';
 
 export default function Repository() {
@@ -18,32 +19,58 @@ export default function Repository() {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [zipInstance, setZipInstance] = useState<JSZip | null>(null);
   const [activeTab, setActiveTab] = useState("preview"); // Keep track of the active tab (Preview / Raw)
-const name = "hi";
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const zip = await JSZip.loadAsync(e.target?.result as ArrayBuffer);
-        setZipInstance(zip); // Set the zip instance in state
-        const structure = parseZipHierarchy(zip);
-        setFileHierarchy(structure);
+  const { id } = useParams();  // Get repID from the URL
 
-        // Automatically select Readme.md if it exists in the root
-        if (structure["Readme.md"]) {
-          console.log("Hi, selecting Readme.md");
-          setSelectedFile("Readme.md"); // Set the selected file path
+  const name = "hi"; // You can replace this with the repository name
 
-          // Use `zip` directly here instead of `zipInstance`
-          const readme = zip.file(structure["Readme.md"]);
-          if (readme) {
-            const content = await readme.async("text");
-            setFileContents(content);
-            console.log("fileContents", content); // Logs content of Readme.md
-          }
+  // Use useEffect to load the auth token (from localStorage, context, etc.)
+
+  // Fetch the zip file when repID changes
+  useEffect(() => {
+    if (id) {
+      console.log("repID",id)
+      fetchZipFile(id);
+    }
+  }, [id]);
+
+  const fetchZipFile = async (RepID: string) => {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      alert("No JWT token found");
+      return;
+    }
+    console.log("RepID",RepID)
+    try {
+      const response = await fetch(`http://localhost:3000/auth/getzip`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',  // Set content type to JSON
+        },
+        body: JSON.stringify({  RepID }), // Send RepID in the request body
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch the ZIP file');
+      }
+
+      const zipBlob = await response.blob();
+      const zip = await JSZip.loadAsync(zipBlob);
+      setZipInstance(zip); // Set the zip instance in state
+      const structure = parseZipHierarchy(zip);
+      setFileHierarchy(structure);
+
+      // Automatically select Readme.md if it exists in the root
+      if (structure["Readme.md"]) {
+        setSelectedFile("Readme.md");
+        const readme = zip.file(structure["Readme.md"]);
+        if (readme) {
+          const content = await readme.async("text");
+          setFileContents(content);
         }
-      };
-      reader.readAsArrayBuffer(file);
+      }
+    } catch (error) {
+      console.error("Error fetching ZIP file:", error);
     }
   };
 
@@ -57,15 +84,12 @@ const name = "hi";
       let current = structure;
       parts.forEach((part, index) => {
         if (index === parts.length - 1) {
-          // Last part is a file, so assign the actual file content
           current[part] = relativePath;
         } else {
-          // Check if the current part is already an object (folder)
           if (typeof current[part] !== 'object') {
-            // If not, make it an object to represent a folder
             current[part] = {};
           }
-          current = current[part]; // Move deeper into the folder structure
+          current = current[part];
         }
       });
     });
@@ -92,16 +116,15 @@ const name = "hi";
       const isFolder = typeof structure[key] === "object";
       const isOpen = openFolders.has(newPath);
 
-      if (!isFolder && structure[key] && key) {
+      if (!isFolder && structure[key]) {
         elements.push(
           <div key={newPath} style={{ marginLeft: `${level * 20}px`, paddingLeft: '8px' }}>
-            
             <Button
               variant="ghost"
               className="w-full text-left"
               onClick={() => handleFileClick(structure[key])}
             >
-            <FileText className="w-full text-left"/>  {key}
+              <FileText className="w-full text-left" /> {key}
             </Button>
           </div>
         );
@@ -155,47 +178,39 @@ const name = "hi";
 
     return (
       <>
-
-
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>{parts[0]}</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbEllipsis />
-            </BreadcrumbItem>
-
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink>{parts[parts.length - 2]}</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink>{parts[parts.length - 1]}</BreadcrumbLink>
-            </BreadcrumbItem>
-
-
+        <BreadcrumbItem>
+          <BreadcrumbLink asChild>{parts[0]}</BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          <BreadcrumbEllipsis />
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          <BreadcrumbLink>{parts[parts.length - 2]}</BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          <BreadcrumbLink>{parts[parts.length - 1]}</BreadcrumbLink>
+        </BreadcrumbItem>
       </>
     );
   };
 
   return (
-    <div className="flex items-center justify-between p-4 px-8 " style={{ paddingLeft: "15vw", paddingRight: "15vw", flexDirection: "column" }}>
-      {/* File Input */}
-      <input type="file" accept=".zip" onChange={handleFileChange} className="mb-4" />
-
+    <div className="flex items-center justify-between p-4 px-8" style={{ paddingLeft: "15vw", paddingRight: "15vw", flexDirection: "column" }}>
       {/* Breadcrumb Navigation */}
       {selectedFile && (
         <div className="w-full max-w-4xl px-4 mb-4 flex flex-row items-center gap-2">
           <Breadcrumb className="flex items-center overflow-hidden">
-          <BreadcrumbList> 
-          <BreadcrumbItem>
-              <Folder />
-              <BreadcrumbLink>{name}</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-          {renderBreadcrumb()}
-          </BreadcrumbList>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <Folder />
+                <BreadcrumbLink>{name}</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              {renderBreadcrumb()}
+            </BreadcrumbList>
           </Breadcrumb>
         </div>
       )}
@@ -210,7 +225,6 @@ const name = "hi";
           <CardContent>
             {fileHierarchy ? (
               <div className="max-h-96 overflow-y-auto">
-                
                 {renderHierarchy(fileHierarchy)}
               </div>
             ) : (
@@ -220,52 +234,45 @@ const name = "hi";
         </Card>
 
         {/* File Content Card */}
-        <Card className="" style={{ width: "90vw", height: "80vh",overflowY:"auto"}}>
+        <Card className="" style={{ width: "90vw", height: "80vh", overflowY: "auto" }}>
           <div className="flex justify-between items-center">
             <div className="text-lg font-semibold">
               {selectedFile ? selectedFile.split('/').pop() : ""}
             </div>
-            {selectedFile ? (<Button variant="outline" className="text-sm">
-              Edit
-            </Button>) :(<div></div>) }
-            
+            {selectedFile ? (
+              <Button variant="outline" className="text-sm">
+                Edit
+              </Button>
+            ) : (
+              <div></div>
+            )}
           </div>
 
           {selectedFile ? (
-            <div>
-
-                <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList>
                 <TabsTrigger value="preview">Preview</TabsTrigger>
                 <TabsTrigger value="raw">Raw</TabsTrigger>
               </TabsList>
-              <TabsContent value="preview">
-              </TabsContent>
-              <TabsContent value="raw">
-              </TabsContent>
-              
 
+              <TabsContent value="preview" className="p-4 h-full">
+                {fileContents && activeTab === "preview" ? (
+                  <div>{fileContents}</div>
+                ) : (
+                  <div>No file content</div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="raw" className="p-4 h-full">
+                {fileContents && activeTab === "raw" ? (
+                  <pre>{fileContents}</pre>
+                ) : (
+                  <div>No file content</div>
+                )}
+              </TabsContent>
             </Tabs>
-            <Card style={{minHeight:"60vh"}}>
-
-              <CardContent >
-                 {fileContents}
-                </CardContent>
-            </Card>
-            
-
-             
-            </div>
-          
           ) : (
-            <div style={{ marginTop: "35%" }}>
-              <CardHeader>
-                <FileText className="w-12 h-12 text-gray-500 mx-auto" />
-              </CardHeader>
-              <CardContent className="text-center text-gray-500">
-                <p>Select a file to view its contents</p>
-              </CardContent>
-            </div>
+            <div>No file selected</div>
           )}
         </Card>
       </div>

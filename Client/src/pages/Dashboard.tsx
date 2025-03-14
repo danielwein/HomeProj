@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -11,8 +11,42 @@ import { Folder } from "lucide-react";
 import { Link } from "react-router-dom";
 import { NewFile } from "@/components/NewFile";
 
+interface Repository {
+  _id: string;
+  Repname: string;
+  Desc?: string;
+  CreatedAT: string;
+  LastChanged:string;
+}
+
 export default function Dashboard() {
-  const [zipFiles, setZipFiles] = useState<{ id: string; name: string; size: number; file: File }[]>([]);
+  const [repositories, setRepositories] = useState<Repository[]>([]);
+
+  useEffect(() => {
+    const fetchRepositories = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const response = await fetch("http://localhost:3000/auth/reps", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        const data = await response.json();
+        if (data.repositories) {
+          setRepositories(data.repositories);
+        }
+      } catch (error) {
+        console.error("Error fetching repositories:", error);
+      }
+    };
+
+    fetchRepositories();
+  }, []);
 
   return (
     <div>
@@ -23,7 +57,7 @@ export default function Dashboard() {
         <h1 className="flex items-center text-3xl font-bold text-gray-800 dark:text-white" style={{ marginRight: "1rem" }}>
           Repositories
         </h1>
-        <NewFile setZipFiles={setZipFiles} />
+        <NewFile setZipFiles={setRepositories} />
       </div>
 
       <div
@@ -36,41 +70,23 @@ export default function Dashboard() {
           gap: "10px",
         }}
       >
-        {/* Render ZIP files as cards */}
-        {zipFiles.map((zip) => (
-          <Link to={`/repository/${zip.id}`} key={zip.id}>
+        {repositories.map((repo) => (
+          <Link to={`/repository/${repo._id}`} key={repo._id}>
             <Card style={{ width: "100%" }}>
               <CardHeader className="flex-row gap-4 items-center">
                 <Folder />
                 <div>
-                  <CardTitle>{zip.name}</CardTitle> {/* ZIP file name as title */}
-                  <CardDescription>Uploaded ZIP File</CardDescription>
+                  <CardTitle>{repo.Repname}</CardTitle>
+                  <CardDescription>{repo.Desc }</CardDescription>
                 </div>
               </CardHeader>
               <CardContent>
-                <p>Size: {zip.size} bytes</p>
+                <p>Created: {new Date(repo.CreatedAT).toLocaleString()}</p>
               </CardContent>
-              <CardFooter>Last updated Today at 05:33 PM</CardFooter>
+              <CardFooter>Last updated: {new Date(repo.LastChanged).toLocaleString()}</CardFooter>
             </Card>
           </Link>
         ))}
-
-        {/* Keep hardcoded cards */}
-        <Link to="/">
-          <Card style={{ width: "100%" }}>
-            <CardHeader className="flex-row gap-4 items-center">
-              <Folder />
-              <div>
-                <CardTitle>Jane Developer</CardTitle>
-                <CardDescription>Frontend Engineer</CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p>Created Today at 05:33 PM</p>
-            </CardContent>
-            <CardFooter>Last updated Today at 05:33 PM</CardFooter>
-          </Card>
-        </Link>
       </div>
     </div>
   );
