@@ -7,9 +7,6 @@ import {
   import { buttonVariants } from "@/components/ui/button";
   import {ArrowRight} from "lucide-react"
   import {
-    Card,
-    CardContent,
-    CardFooter,
     CardHeader,
     CardTitle,
     CardDescription
@@ -39,11 +36,11 @@ export default function Resize() {
       style={{backgroundColor:"hsl(240deg 3.76% 16.08% / 10%)"}}
     >
         
-      <ResizablePanel defaultSize={20} style={{marginRight:"22%",marginLeft:"22%"}}>
+      <ResizablePanel defaultSize={20} style={{marginRight:"22%",marginLeft:"22%",flexGrow:""}}>
       <h1 style={{fontSize: " 1.875rem",textAlign:'center',fontWeight: "700"}}>Features & Benefits </h1>
       <h1 style={{fontSize: "1.25rem",textAlign:'center'}}>ZipHub provides a simple yet powerful way to manage your code repositories without the complexity of Git.</h1>
       </ResizablePanel>
-      <ResizablePanel defaultSize={12}>
+      <ResizablePanel defaultSize={12} >
         <div className="flex h-full items-center justify-center p-6">
         <div
           style={{
@@ -125,7 +122,7 @@ export default function Resize() {
           </div>
         </div>
       </ResizablePanel>
-      <ResizablePanel defaultSize={5}>
+      <ResizablePanel defaultSize={5} style={{}}>
         <div className="flex h-full items-center justify-center p-6">
         <Link
           to="/Sign"

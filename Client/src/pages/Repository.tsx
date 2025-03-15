@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import JSZip from 'jszip';
 import { useParams } from 'react-router-dom'; // Import useParams for getting URL parameters
 import { Button } from "@/components/ui/button";
-import { Folder, ChevronDown, ChevronRight, FileText } from 'lucide-react';
+import { Folder, ChevronDown, ChevronRight, FileText, } from 'lucide-react';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbEllipsis, BreadcrumbList } from "@/components/ui/breadcrumb";
 import {
   Card,
@@ -11,17 +11,19 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { JSX } from 'react';
+import { useLocation } from 'react-router-dom';
 
 export default function Repository() {
   const [fileHierarchy, setFileHierarchy] = useState<any>(null);
   const [openFolders, setOpenFolders] = useState<Set<string>>(new Set());
   const [fileContents, setFileContents] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [selectedPath,setSelectedPath] = useState<string | null>(null)
   const [zipInstance, setZipInstance] = useState<JSZip | null>(null);
   const [activeTab, setActiveTab] = useState("preview"); // Keep track of the active tab (Preview / Raw)
   const { id } = useParams();  // Get repID from the URL
-
-  const name = "hi"; // You can replace this with the repository name
+  const location = useLocation();
+  const name = location.state || {}; // You can replace this with the repository name
 
   // Use useEffect to load the auth token (from localStorage, context, etc.)
 
@@ -93,13 +95,13 @@ export default function Repository() {
         }
       });
     });
-
+    console.log("structure",structure)
     return structure;
   };
 
   const handleFileClick = async (filePath: string) => {
     if (!zipInstance) return;
-
+    console.log("filepath",filePath)
     const file = zipInstance.file(filePath);
     if (file) {
       const content = await file.async("text");
@@ -162,7 +164,11 @@ export default function Repository() {
   };
 
   const renderBreadcrumb = () => {
-    if (!selectedFile) return null;
+    if (!selectedFile) return (
+      <BreadcrumbItem>
+          <BreadcrumbLink ></BreadcrumbLink>
+        </BreadcrumbItem>
+    );
 
     const parts = selectedFile.split('/');
     if (parts.length <= 4) {
@@ -179,7 +185,7 @@ export default function Repository() {
     return (
       <>
         <BreadcrumbItem>
-          <BreadcrumbLink asChild>{parts[0]}</BreadcrumbLink>
+          <BreadcrumbLink >{parts[0]}</BreadcrumbLink>
         </BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem>
@@ -200,7 +206,7 @@ export default function Repository() {
   return (
     <div className="flex items-center justify-between p-4 px-8" style={{ paddingLeft: "15vw", paddingRight: "15vw", flexDirection: "column" }}>
       {/* Breadcrumb Navigation */}
-      {selectedFile && (
+
         <div className="w-full max-w-4xl px-4 mb-4 flex flex-row items-center gap-2">
           <Breadcrumb className="flex items-center overflow-hidden">
             <BreadcrumbList>
@@ -213,7 +219,7 @@ export default function Repository() {
             </BreadcrumbList>
           </Breadcrumb>
         </div>
-      )}
+
 
       {/* Layout for File Viewer and Hierarchy */}
       <div className="flex row flex gap-10 w-full max-w-8xl" style={{ flexDirection: "row" }}>
@@ -228,7 +234,7 @@ export default function Repository() {
                 {renderHierarchy(fileHierarchy)}
               </div>
             ) : (
-              <p>No ZIP file selected</p>
+              <div></div>
             )}
           </CardContent>
         </Card>
@@ -249,30 +255,32 @@ export default function Repository() {
           </div>
 
           {selectedFile ? (
+
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList>
                 <TabsTrigger value="preview">Preview</TabsTrigger>
                 <TabsTrigger value="raw">Raw</TabsTrigger>
               </TabsList>
+              <Card> 
+                    <TabsContent value="preview" className="p-4 h-full">
+    
+                                      <div>{fileContents}</div>
 
-              <TabsContent value="preview" className="p-4 h-full">
-                {fileContents && activeTab === "preview" ? (
-                  <div>{fileContents}</div>
-                ) : (
-                  <div>No file content</div>
-                )}
-              </TabsContent>
+                                  </TabsContent>
 
-              <TabsContent value="raw" className="p-4 h-full">
-                {fileContents && activeTab === "raw" ? (
-                  <pre>{fileContents}</pre>
-                ) : (
-                  <div>No file content</div>
-                )}
-              </TabsContent>
+                     <TabsContent value="raw" className="p-4 h-full">
+                                      <pre>{fileContents}</pre>
+
+
+                                  </TabsContent>
+                                  
+                    </Card>
             </Tabs>
           ) : (
-            <div>No file selected</div>
+            <div className="flex flex-col items-center justify-center h-full text-muted-foreground" >
+              <FileText className='class="lucide lucide-file-text h-16 w-16 mb-4"' style={{marginBottom:"1rem"}}/>
+              <p>Select a file to view its contents</p>
+            </div>
           )}
         </Card>
       </div>
