@@ -36,7 +36,7 @@ export default function Resize() {
       style={{backgroundColor:"hsl(240deg 3.76% 16.08% / 10%)"}}
     >
         
-      <ResizablePanel defaultSize={20} style={{marginRight:"22%",marginLeft:"22%",flexGrow:""}}>
+      <ResizablePanel defaultSize={10} style={{marginRight:"22%",marginLeft:"22%",flex:""}}>
       <h1 style={{fontSize: " 1.875rem",textAlign:'center',fontWeight: "700"}}>Features & Benefits </h1>
       <h1 style={{fontSize: "1.25rem",textAlign:'center'}}>ZipHub provides a simple yet powerful way to manage your code repositories without the complexity of Git.</h1>
       </ResizablePanel>

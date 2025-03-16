@@ -1,7 +1,7 @@
 
 import { verifyJWT } from "../utils/jwt.js"; // Import your JWT functions
 import Rep from "../models/Rep.js";
-
+import JSZip from "jszip";
 import AWS from "aws-sdk";
 import path from "path";
 import fs from "fs";
@@ -126,7 +126,7 @@ export const uploadFile = async (req, res) => {
         return res.status(401).json({ error: "Unauthorized - Missing token" });
       }
       const { RepID } = req.body;  // Assuming RepID is passed as a route parameter
-      console.log("repID",RepID)
+      // console.log("repID",RepID)
       // Step 1: Get the file path (S3 key) from the database using RepID
       const rep = await Rep.findById(RepID);  // Adjust this to your DB query logic
       if (!rep) {
@@ -148,6 +148,58 @@ export const uploadFile = async (req, res) => {
       res.setHeader('Content-Type', s3Object.ContentType);  // Optional: Set the correct content type
       res.send(s3Object.Body);  // Send the file data to the client
   
+    } catch (error) {
+      console.error('Error getting file from S3:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  };
+  export const updateFile = async ( req,res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized - Missing token" });
+      }
+      const { RepID,selectedFile,ChangeContent } = req.body;  
+      console.log("repID",RepID)
+      console.log("selectedFile",selectedFile)
+      console.log("ChangeContent",ChangeContent)
+      console.log(req.body)
+      // Step 1: Get the file path (S3 key) from the database using RepID
+   // The S3 path stored in the database
+   const s3Params = {
+    Bucket: 'my-local-bucket',  // Replace with your LocalStack bucket name
+    Key: `${RepID}.zip`,  // S3 file path (key)
+  };
+   // Download ZIP from S3
+   const s3Object = await s3.getObject(s3Params).promise();
+   const zipData = s3Object.Body; // ZIP as a Buffer
+
+   // Load ZIP 
+   const zip = await JSZip.loadAsync(zipData);
+
+   //  Update the content 
+   if (!zip.files[selectedFile]) {
+     return res.status(404).json({ error: "File not found in ZIP" });
+   }
+
+   zip.file(selectedFile, ChangeContent); // Replace file content
+
+   //  Generate a new ZIP file
+   const updatedZipBlob = await zip.generateAsync({ type: "nodebuffer" });
+
+   // Upload back to S3
+   const uploadParams = {
+     Bucket: "my-local-bucket",
+     Key: `${RepID}.zip`,
+     Body: updatedZipBlob,
+     ContentType: "application/zip",
+   };
+
+   await s3.upload(uploadParams).promise();
+  // Fetch the file from S3
+
+        console.log("hi");
+          res.json({ success: true });
     } catch (error) {
       console.error('Error getting file from S3:', error);
       res.status(500).json({ error: 'Internal server error' });

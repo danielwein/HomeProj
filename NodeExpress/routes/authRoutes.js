@@ -1,6 +1,6 @@
 import express from "express";
 import { register, login } from "../controllers/authController.js";
-import {uploadFile, getRep,getZip} from "../controllers/RepController.js"
+import {uploadFile, getRep,getZip,updateFile} from "../controllers/RepController.js"
 import multer from "multer";
 
 const router = express.Router();
@@ -21,4 +21,5 @@ router.post("/login", login);
 router.post("/upload", upload.single("file"),uploadFile)
 router.post("/reps",getRep)
 router.post("/getzip",getZip)
+router.post("/update",upload.none(),updateFile)
 export default router;

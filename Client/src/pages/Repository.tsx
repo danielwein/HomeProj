@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import JSZip from 'jszip';
-import { useParams } from 'react-router-dom'; // Import useParams for getting URL parameters
+import { Form, useParams } from 'react-router-dom'; // Import useParams for getting URL parameters
 import { Button } from "@/components/ui/button";
-import { Folder, ChevronDown, ChevronRight, FileText, } from 'lucide-react';
+import { Folder, ChevronDown, ChevronRight, FileText,Save } from 'lucide-react';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbEllipsis, BreadcrumbList } from "@/components/ui/breadcrumb";
+import { Textarea } from "@/components/ui/textarea"
 import {
   Card,
   CardContent,
@@ -17,9 +18,10 @@ export default function Repository() {
   const [fileHierarchy, setFileHierarchy] = useState<any>(null);
   const [openFolders, setOpenFolders] = useState<Set<string>>(new Set());
   const [fileContents, setFileContents] = useState<string | null>(null);
+  const [changedcontent,setChangecontent] = useState<string >("");
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  const [selectedPath,setSelectedPath] = useState<string | null>(null)
   const [zipInstance, setZipInstance] = useState<JSZip | null>(null);
+  const [isActive, setIsActive] = useState(false);
   const [activeTab, setActiveTab] = useState("preview"); // Keep track of the active tab (Preview / Raw)
   const { id } = useParams();  // Get repID from the URL
   const location = useLocation();
@@ -95,7 +97,6 @@ export default function Repository() {
         }
       });
     });
-    console.log("structure",structure)
     return structure;
   };
 
@@ -107,8 +108,56 @@ export default function Repository() {
       const content = await file.async("text");
       setSelectedFile(filePath);
       setFileContents(content);
+      setIsActive(false)
     }
   };
+const SaveEdit = () => {
+  console.log("hi")
+  console.log("isActive",isActive)
+  if(fileContents) 
+      setChangecontent(fileContents)
+  else
+      setChangecontent("")
+  setIsActive(prev => !prev);
+}
+const  UpdateContent = async() => {
+  const token = localStorage.getItem("token");
+    if (!token) {
+      return;
+    }
+    var oldp = null
+  const payload = new FormData();
+  if(selectedFile && id ) {
+    payload.append("selectedFile",selectedFile)
+     oldp = selectedFile
+      payload.append("RepID", id);
+      payload.append("ChangeContent",changedcontent)
+  }
+  console.log(payload)
+  try {
+    const response = await fetch("http://localhost:3000/auth/update", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: payload,
+    });
+
+    console.log(isActive)
+    if (!response.ok) {
+      throw new Error("Failed to update the file.");
+    }
+    
+    // Refresh repositories after upload
+    if(id)
+    {fetchZipFile(id)}
+
+}
+catch(error){}
+
+}
+
+
 
   const renderHierarchy = (structure: any, level: number = 0, path: string = ''): JSX.Element[] => {
     const elements: JSX.Element[] = [];
@@ -166,7 +215,6 @@ export default function Repository() {
   const renderBreadcrumb = () => {
     if (!selectedFile) return (
       <BreadcrumbItem>
-          <BreadcrumbLink ></BreadcrumbLink>
         </BreadcrumbItem>
     );
 
@@ -238,50 +286,71 @@ export default function Repository() {
             )}
           </CardContent>
         </Card>
-
+ 
         {/* File Content Card */}
         <Card className="" style={{ width: "90vw", height: "80vh", overflowY: "auto" }}>
-          <div className="flex justify-between items-center">
-            <div className="text-lg font-semibold">
-              {selectedFile ? selectedFile.split('/').pop() : ""}
-            </div>
-            {selectedFile ? (
-              <Button variant="outline" className="text-sm">
-                Edit
-              </Button>
-            ) : (
-              <div></div>
-            )}
-          </div>
-
           {selectedFile ? (
+                isActive ? (
+                <div>
+                    <div className="flex justify-between items-center">
+                                      <div className="text-lg font-semibold">
+                                            { selectedFile.split('/').pop() }
+                                            </div>
+                                      <Button variant="default" className="text-sm" onClick={UpdateContent}>
+                                              <Save /> Save 
+                                              </Button>
+                                    </div>
+                                    <Card style={{marginTop:"2rem"}}>
+                            <CardContent className="h-full p-0">
+                              <Textarea
+                                className="p-4 h-full w-full resize-none border-none focus:ring-0 "
+                                value={changedcontent}
+                                onChange={(e) => setChangecontent(e.target.value)}
+                                
+                              />
+                            </CardContent>
+                          </Card>
+               
 
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList>
-                <TabsTrigger value="preview">Preview</TabsTrigger>
-                <TabsTrigger value="raw">Raw</TabsTrigger>
-              </TabsList>
-              <Card> 
-                    <TabsContent value="preview" className="p-4 h-full">
-    
-                                      <div>{fileContents}</div>
+                </div>
+                
+                ) : (<div>
+            <div className="flex justify-between items-center">
+                        <div className="text-lg font-semibold">
+                         { selectedFile.split('/').pop() }
+                        </div>
 
-                                  </TabsContent>
+                          <Button variant="outline" className="text-sm" onClick={SaveEdit}>
+                            Edit
+                          </Button>
 
-                     <TabsContent value="raw" className="p-4 h-full">
-                                      <pre>{fileContents}</pre>
+                      </div>
 
 
-                                  </TabsContent>
-                                  
-                    </Card>
-            </Tabs>
+                        <Tabs value={activeTab} onValueChange={setActiveTab}>
+                          <TabsList>
+                            <TabsTrigger value="preview">Preview</TabsTrigger>
+                            <TabsTrigger value="raw">Raw</TabsTrigger>
+                          </TabsList>
+                          <Card> 
+                                <TabsContent value="preview" className="p-4 h-full">
+                                                  <div>{fileContents}</div>
+                                              </TabsContent>
+                                <TabsContent value="raw" className="p-4 h-full" >
+                                                  <pre className="h-full w-full overflow-auto p-2">{fileContents}</pre>
+                                              </TabsContent>      
+                                </Card>
+                        </Tabs>
+              </div>
+)
+              
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground" >
               <FileText className='class="lucide lucide-file-text h-16 w-16 mb-4"' style={{marginBottom:"1rem"}}/>
               <p>Select a file to view its contents</p>
             </div>
           )}
+         
         </Card>
       </div>
     </div>
