@@ -125,7 +125,7 @@ const  UpdateContent = async() => {
     if (!token) {
       return;
     }
-    var oldp = null
+    var oldp = ""
   const payload = new FormData();
   if(selectedFile && id ) {
     payload.append("selectedFile",selectedFile)
@@ -147,10 +147,37 @@ const  UpdateContent = async() => {
     if (!response.ok) {
       throw new Error("Failed to update the file.");
     }
-    
-    // Refresh repositories after upload
-    if(id)
-    {fetchZipFile(id)}
+    setFileContents(changedcontent)
+    const responsetwo = await fetch(`http://localhost:3000/auth/getzip`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',  // Set content type to JSON
+      },
+      body: JSON.stringify({  "RepID": id }), // Send RepID in the request body
+    });
+    if (!responsetwo.ok) {
+      throw new Error('Failed to fetch the ZIP file');
+    }
+
+    const zipBlob = await responsetwo.blob();
+    const zip = await JSZip.loadAsync(zipBlob);
+    setZipInstance(zip); // Set the zip instance in state
+    const structure = parseZipHierarchy(zip);
+    setFileHierarchy(structure);
+
+    // Automatically select Readme.md if it exists in the root
+    if (structure["Readme.md"]) {
+      setSelectedFile("Readme.md");
+      const readme = zip.file(structure["Readme.md"]);
+      if (readme) {
+        const content = await readme.async("text");
+        setFileContents(content);
+      }
+    }
+  
+    setIsActive(false)
+
 
 }
 catch(error){}
