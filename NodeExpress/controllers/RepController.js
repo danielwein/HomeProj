@@ -197,6 +197,12 @@ export const uploadFile = async (req, res) => {
 
    await s3.upload(uploadParams).promise();
   // Fetch the file from S3
+  const rep = await Rep.findById(RepID);  // Adjust this to your DB query logic
+  if (!rep) {
+    return res.status(404).json({ error: 'Repository not found' });
+  }
+  await rep.updateOne({ $set: { 
+    LastChanged:  new Date() } });
 
         console.log("hi");
           res.json({ success: true });
