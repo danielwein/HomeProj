@@ -32,11 +32,11 @@ export default function Resize() {
 
     <ResizablePanelGroup
       direction="vertical"
-      className="min-h-[750px] max-w-md rounded-lg  md:min-w-[1500px]"
+      className="min-h-[600px] max-w-md rounded-lg  md:min-w-[1500px]"
       style={{backgroundColor:"hsl(240deg 3.76% 16.08% / 10%)"}}
     >
         
-      <ResizablePanel defaultSize={10} style={{marginRight:"22%",marginLeft:"22%",flex:""}}>
+      <ResizablePanel defaultSize={3} style={{marginRight:"22%",marginLeft:"22%",flex:""}}>
       <h1 style={{fontSize: " 1.875rem",textAlign:'center',fontWeight: "700"}}>Features & Benefits </h1>
       <h1 style={{fontSize: "1.25rem",textAlign:'center'}}>ZipHub provides a simple yet powerful way to manage your code repositories without the complexity of Git.</h1>
       </ResizablePanel>
@@ -49,7 +49,7 @@ export default function Resize() {
             marginTop: "1rem",
             display: "grid",
             gridTemplateColumns: "repeat(3, 1fr)",
-            gap: "10px",
+            gap: "10px", 
           }}
         >
                     <CardHeader className="flex-row gap-4 items-center">
